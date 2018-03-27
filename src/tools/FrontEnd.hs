@@ -4,6 +4,8 @@ import System.Environment
 import System.IO
 
 import qualified Check
+import qualified IRGen
+import qualified LoopIR
 import qualified Parse
 
 
@@ -20,6 +22,11 @@ main = do
   let ast = Parse.parseProgram src
   let ok  = Check.checkProgram ast
   putStrLn $ show ast ++ "\n"
-  if not ok then putStrLn "There were semantic errors."
-            else return ()
-          
+  if not ok
+     then do putStrLn "There were semantic errors."
+             return ()
+     else do let ir = IRGen.fromASTProgram ast
+             let et = LoopIR.makeElementCType "double" "0.0"
+             putStrLn "IR:"
+             putStrLn $ LoopIR.printCStmt et ir
+                          
