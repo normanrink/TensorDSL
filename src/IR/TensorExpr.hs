@@ -1,6 +1,7 @@
 
 module TensorExpr ( TExpr
                   , makeAccess
+                  , makeContraction
                   , (+)
                   , (-)
                   , (*)
@@ -40,6 +41,9 @@ infixl 7 *
 makeAccess :: n -> [IndexExpr.IExpr i c] -> TExpr n i c
 makeAccess name is = Acc name is
 
+makeContraction :: i -> TExpr n i c -> TExpr n i c
+makeContraction index e = Contr index e
+
 
 instance (Show n, Show i, Show c) => Show (TExpr n i c) where
   show = render . prettyPrint
@@ -55,7 +59,7 @@ prettyPrint (Contr _ e)   = (prettyPrint e) -- leave contractions implicit
 prettyPrint (Acc name is) = (text $ Util.showUnquoted name) <> (prettyIndices is)
 
 prettyIndices :: (Show i, Show c) => [IndexExpr.IExpr i c] -> Doc
-prettyIndices is = cat $ map (brackets . IndexExpr.prettyPrintTopLevel) is
+prettyIndices is = hcat $ map (brackets . IndexExpr.prettyPrintTopLevel) is
 
 tree :: (Show n, Show i, Show c) => TExpr n i c -> String
 tree = render . formatAsTree
@@ -64,12 +68,12 @@ formatAsTree :: (Show n, Show i, Show c) => TExpr n i c -> Doc
 formatAsTree = formatAsTree' 0
 
 formatAsTree' :: (Show n, Show i, Show c) => Int -> TExpr n i c -> Doc
-formatAsTree' indent e@(Add e0 e1) = let kind = exprKindAsString e
-                                     in formatBinOp indent kind e0 e1
-formatAsTree' indent e@(Sub e0 e1) = let kind = exprKindAsString e
-                                     in formatBinOp indent kind e0 e1
-formatAsTree' indent e@(Mul e0 e1) = let kind = exprKindAsString e
-                                     in formatBinOp indent kind e0 e1
+formatAsTree' indent e@(Add e0 e1)   = let kind = exprKindAsString e
+                                       in formatBinOp indent kind e0 e1
+formatAsTree' indent e@(Sub e0 e1)   = let kind = exprKindAsString e
+                                       in formatBinOp indent kind e0 e1
+formatAsTree' indent e@(Mul e0 e1)   = let kind = exprKindAsString e
+                                       in formatBinOp indent kind e0 e1
 formatAsTree' indent e@(Acc name is) = let kind  = exprKindAsString e
                                            label = Util.showUnquoted name
                                        in nest indent $ (text label) <> prettyIndices is
