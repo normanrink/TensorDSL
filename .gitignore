@@ -27,3 +27,15 @@ private/*
 
 *.hi
 *.o
+
+dist/*
+
+*.dyn_hi
+*.dyn_o
+
+*.p_hi
+*.p_o
+
+*.dylib
+*.a
+
