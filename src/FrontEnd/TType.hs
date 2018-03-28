@@ -1,7 +1,9 @@
 
 module TType ( TType
              , rank
+             , at
              , concat
+             , scalar
              , isScalar
              , skipPair
              , swapPair
@@ -19,8 +21,14 @@ type TType = [Int]
 rank :: TType -> Int
 rank t = length t
 
+at :: Int -> TType -> Int
+at i t = t !! i
+
 concat :: TType -> TType -> TType
 concat t0 t1 = t0 ++ t1
+
+scalar :: TType
+scalar = []
 
 isScalar :: TType -> Bool
 isScalar [] = True

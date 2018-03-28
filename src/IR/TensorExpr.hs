@@ -1,14 +1,15 @@
 
-module TensorExpr ( TExpr
+module TensorExpr ( TExpr(..)
                   , makeAccess
-                  , makeContraction
+                  , makeContraction, isContraction, replaceContractionExpr
                   , (+)
                   , (-)
                   , (*)
+                  , isBinop, decomposeBinop
                   , show
                   , tree
                   , prettyPrint
-                  , indicesInExpr ) where
+                  , freeIndicesInExpr ) where
 
 import Prelude hiding ((+), (-), (*))
 import qualified Prelude ((+), (-), (*))
@@ -22,7 +23,11 @@ import qualified Utility as Util
 data TExpr n i c = Add (TExpr n i c) (TExpr n i c)
                  | Sub (TExpr n i c) (TExpr n i c)
                  | Mul (TExpr n i c) (TExpr n i c)
-                 | Contr i (TExpr n i c)
+                 | Contr { index :: i
+                         , lb    :: c
+                         , ub    :: c
+                         , inc   :: c
+                         , expr  :: TExpr n i c }
                  | Acc n [IndexExpr.IExpr i c]
                  deriving (Eq)
 
@@ -41,8 +46,29 @@ infixl 7 *
 makeAccess :: n -> [IndexExpr.IExpr i c] -> TExpr n i c
 makeAccess name is = Acc name is
 
-makeContraction :: i -> TExpr n i c -> TExpr n i c
-makeContraction index e = Contr index e
+makeContraction :: i -> c -> c -> c -> TExpr n i c -> TExpr n i c
+makeContraction index lb ub inc e = Contr index lb ub inc e
+
+isContraction :: TExpr n i c -> Bool
+isContraction (Contr _ _ _ _ _) = True
+isContraction _                 = False
+
+replaceContractionExpr :: TExpr n i c -> TExpr n i c -> TExpr n i c
+replaceContractionExpr (Contr index lb ub inc expr) expr' = Contr index lb ub inc expr'
+replaceContractionExpr _                            _     = undefined
+
+isBinop :: TExpr n i c -> Bool
+isBinop (Add _ _) = True
+isBinop (Sub _ _) = True
+isBinop (Mul _ _) = True
+isBinop _         = False
+
+decomposeBinop :: TExpr n i c -> (TExpr n i c, TExpr n i c,
+                                  TExpr n i c -> TExpr n i c -> TExpr n i c)
+decomposeBinop (Add e0 e1) = (e0, e1, (+))
+decomposeBinop (Sub e0 e1) = (e0, e1, (-))
+decomposeBinop (Mul e0 e1) = (e0, e1, (*))
+decomposeBinop _           = undefined
 
 
 instance (Show n, Show i, Show c) => Show (TExpr n i c) where
@@ -55,11 +81,20 @@ prettyPrint e@(Sub e0 e1) = let op = (text $ exprKindAsOp e)
                             in parens $ (prettyPrint e0) <> op <> (prettyPrint e1)
 prettyPrint e@(Mul e0 e1) = let op = (text $ exprKindAsOp e)
                             in (prettyPrint e0) <> op <> (prettyPrint e1)
-prettyPrint (Contr _ e)   = (prettyPrint e) -- leave contractions implicit
+prettyPrint (Contr index lb ub inc e) =
+  let label = (text "Contract")
+      args  = [ (text $ Util.showUnquoted index)
+              , (text $ show lb)
+              , (text $ show ub)
+              , (text $ show inc)
+              , (prettyPrint e)]
+  in label <> (parens . hsep $ punctuate comma args)
 prettyPrint (Acc name is) = (text $ Util.showUnquoted name) <> (prettyIndices is)
 
 prettyIndices :: (Show i, Show c) => [IndexExpr.IExpr i c] -> Doc
-prettyIndices is = hcat $ map (brackets . IndexExpr.prettyPrintTopLevel) is
+prettyIndices is = if length is == 0
+                      then empty
+                      else hcat $ map (brackets . IndexExpr.prettyPrintTopLevel) is
 
 tree :: (Show n, Show i, Show c) => TExpr n i c -> String
 tree = render . formatAsTree
@@ -92,16 +127,16 @@ exprKindAsOp (Mul _ _) = "*"
 exprKindAsOp _         = error "not an operator"
 
 exprKindAsString :: TExpr n i c -> String
-exprKindAsString (Add _ _)   = "Add"
-exprKindAsString (Sub _ _)   = "Sub"
-exprKindAsString (Mul _ _)   = "Mul"
-exprKindAsString (Contr _ _) = "Contr"
-exprKindAsString (Acc _ _)   = "Acc"
+exprKindAsString (Add _ _)         = "Add"
+exprKindAsString (Sub _ _)         = "Sub"
+exprKindAsString (Mul _ _)         = "Mul"
+exprKindAsString (Contr _ _ _ _ _) = "Contr"
+exprKindAsString (Acc _ _)         = "Acc"
 
 
-indicesInExpr :: (Eq i) => TExpr n i c -> [i]
-indicesInExpr (Add e0 e1)  = (indicesInExpr e0) ++ (indicesInExpr e1)
-indicesInExpr (Sub e0 e1)  = (indicesInExpr e0) ++ (indicesInExpr e1)
-indicesInExpr (Mul e0 e1)  = (indicesInExpr e0) ++ (indicesInExpr e1)
-indicesInExpr (Contr i e0) = [ j | j <- (indicesInExpr e0), j /= i ]
-indicesInExpr (Acc _ is)   = concatMap IndexExpr.indicesInExpr is
+freeIndicesInExpr :: (Eq i) => TExpr n i c -> [i]
+freeIndicesInExpr (Add e0 e1)        = (freeIndicesInExpr e0) ++ (freeIndicesInExpr e1)
+freeIndicesInExpr (Sub e0 e1)        = (freeIndicesInExpr e0) ++ (freeIndicesInExpr e1)
+freeIndicesInExpr (Mul e0 e1)        = (freeIndicesInExpr e0) ++ (freeIndicesInExpr e1)
+freeIndicesInExpr (Contr i _ _ _ e0) = [ j | j <- (freeIndicesInExpr e0), j /= i ]
+freeIndicesInExpr (Acc _ is)         = concatMap IndexExpr.indicesInExpr is
