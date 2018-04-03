@@ -23,11 +23,11 @@ isScalar :: MType -> Bool
 isScalar (Just t) = TType.isScalar t
 isScalar _        = False
 
-checkProgram :: AST.Program -> Bool
+checkProgram :: AST.Program -> (Bool, Context.Context)
 checkProgram p = let decls = AST.decls p
                      stmts = AST.stmts p
                      ctx   = Context.fromDecls decls
-                 in checkStmts ctx stmts
+                 in (checkStmts ctx stmts, ctx)
                                              
 checkStmts :: Context.Context -> [AST.Stmt] -> Bool
 checkStmts ctx stmts = and $ map (checkStmt ctx) stmts
