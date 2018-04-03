@@ -113,16 +113,15 @@ fromASTStmts stmts = let folder = \irs -> \stmt -> do { ir <- fromASTStmt stmt;
                      in do irstmts <- foldM folder [] stmts
                            return $ LoopIR.makeCompound (reverse irstmts)
                            
-fromASTProgram' :: AST.Program -> (IRStmt, IRGenCtx)
-fromASTProgram' p = let decls = AST.decls p
-                        stmts = AST.stmts p
-                        ctx   = Context.fromDecls decls
-                        irgc  = IRGenContext.makeIRGenContext ctx
-                    in runState (fromASTStmts stmts) irgc
+fromASTProgram' :: AST.Program -> Context.Context -> (IRStmt, IRGenCtx)
+fromASTProgram' p ctx = let decls = AST.decls p
+                            stmts = AST.stmts p
+                            irgc  = IRGenContext.makeIRGenContext ctx
+                        in runState (fromASTStmts stmts) irgc
 
-fromASTProgram :: AST.Program -> IRStmt
-fromASTProgram p = let (ir, irgc) = fromASTProgram' p
-                   in evalState (explicitContractions True ir) irgc
+fromASTProgram :: AST.Program -> Context.Context -> IRStmt
+fromASTProgram p ctx = let (ir, irgc) = fromASTProgram' p ctx
+                       in evalState (explicitContractions True ir) irgc
 
 irLoopNest :: TType.TType -> Indices -> IRStmt -> IRStmt
 irLoopNest t is irstmt = let pairs  = TType.zip t is
@@ -198,11 +197,11 @@ explicitContractions :: Bool -> IRStmt -> State IRGenCtx IRStmt
 explicitContractions top ir | LoopIR.isAssignment ir =
                                 explicitContractionsInAssignment top ir
                             | LoopIR.isCompound ir =
-                              let folder = \irs ->
-                                           \stmt -> do { ir' <- explicitContractions top stmt;
-                                                         return (ir':irs) }
-                              in do irs' <- foldM folder [] (LoopIR.getStmts ir)
-                                    return $ LoopIR.makeCompound (reverse irs')
+                                let folder = \irs ->
+                                             \stmt -> do { ir' <- explicitContractions top stmt;
+                                                           return (ir':irs) }
+                                in do irs' <- foldM folder [] (LoopIR.getStmts ir)
+                                      return $ LoopIR.makeCompound (reverse irs')
                             | LoopIR.isLoop ir =
                                 let body  = LoopIR.body ir
                                 in do body' <- explicitContractions top body
