@@ -53,27 +53,34 @@ concat (Just t0) (Just t1) = Just $ TType.concat t0 t1
 concat _         _         = Nothing
 
 checkExpr :: Context.Context -> AST.Expr -> MType
-checkExpr ctx (AST.Id name)     = checkVar ctx name
-checkExpr ctx (AST.Plus e0 e1)  = let t0 = checkExpr ctx e0
-                                      t1 = checkExpr ctx e1
-                                  in combine t0 t1
-checkExpr ctx (AST.Minus e0 e1) = let t0 = checkExpr ctx e0
-                                      t1 = checkExpr ctx e1
-                                  in combine t0 t1
-checkExpr ctx (AST.Star e0 e1)  = let t0 = checkExpr ctx e0
-                                      t1 = checkExpr ctx e1
-                                  in if isScalar t0
-                                        then t1
-                                        else combine t0 t1
-checkExpr ctx (AST.Slash e0 e1) = let t0 = checkExpr ctx e0
-                                      t1 = checkExpr ctx e1
-                                  in if isScalar t1
-                                        then t0
-                                        else combine t0 t1
-checkExpr ctx (AST.Hash e0 e1)  = let t0 = checkExpr ctx e0
-                                      t1 = checkExpr ctx e1
-                                  in Check.concat t0 t1
-checkExpr ctx (AST.Period e p)  = let t = checkExpr ctx e
-                                  in skipPairF p t
-checkExpr ctx (AST.Caret e p)   = let t = checkExpr ctx e
-                                  in swapPairF p t
+checkExpr ctx (AST.InE (AST.Id name)) = checkVar ctx name
+checkExpr ctx (AST.InE (AST.Plus e0 e1)) =
+  let t0 = checkExpr ctx e0
+      t1 = checkExpr ctx e1
+  in combine t0 t1
+checkExpr ctx (AST.InE (AST.Minus e0 e1)) =
+  let t0 = checkExpr ctx e0
+      t1 = checkExpr ctx e1
+  in combine t0 t1
+checkExpr ctx (AST.InE (AST.Star e0 e1)) =
+  let t0 = checkExpr ctx e0
+      t1 = checkExpr ctx e1
+  in if isScalar t0
+     then t1
+     else combine t0 t1
+checkExpr ctx (AST.InE (AST.Slash e0 e1)) =
+  let t0 = checkExpr ctx e0
+      t1 = checkExpr ctx e1
+  in if isScalar t1
+     then t0
+     else combine t0 t1
+checkExpr ctx (AST.InE (AST.Hash e0 e1)) =
+  let t0 = checkExpr ctx e0
+      t1 = checkExpr ctx e1
+  in Check.concat t0 t1
+checkExpr ctx (AST.InE (AST.Period e p)) =
+  let t = checkExpr ctx e
+  in skipPairF p t
+checkExpr ctx (AST.InE (AST.Caret e p)) =
+  let t = checkExpr ctx e
+  in swapPairF p t

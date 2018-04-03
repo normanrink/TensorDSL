@@ -37,49 +37,52 @@ splitIndexList irgc e0 _ is = Utility.splitList (exprRank irgc e0) is
 
 -- dispatch:
 fromASTExpr :: Indices -> AST.Expr -> State IRGenCtx TExpr
-fromASTExpr is e@(AST.Id _)       = fromASTExprId is e
-fromASTExpr is e@(AST.Plus _ _)   = fromASTExprPlus is e
-fromASTExpr is e@(AST.Minus _ _)  = fromASTExprMinus is e
-fromASTExpr is e@(AST.Star _ _)   = fromASTExprStar is e
-fromASTExpr is e@(AST.Slash _ _)  = error "not supported yet"
-fromASTExpr is e@(AST.Hash _ _)   = fromASTExprHash is e
-fromASTExpr is e@(AST.Period _ _) = fromASTExprPeriod is e
-fromASTExpr is e@(AST.Caret _ _)  = fromASTExprCaret is e
+fromASTExpr is e@(AST.InE (AST.Id _))       = fromASTExprId is e
+fromASTExpr is e@(AST.InE (AST.Plus _ _))   = fromASTExprPlus is e
+fromASTExpr is e@(AST.InE (AST.Minus _ _))  = fromASTExprMinus is e
+fromASTExpr is e@(AST.InE (AST.Star _ _))   = fromASTExprStar is e
+fromASTExpr is e@(AST.InE (AST.Slash _ _))  = error "not supported yet"
+fromASTExpr is e@(AST.InE (AST.Hash _ _))   = fromASTExprHash is e
+fromASTExpr is e@(AST.InE (AST.Period _ _)) = fromASTExprPeriod is e
+fromASTExpr is e@(AST.InE (AST.Caret _ _))  = fromASTExprCaret is e
 
 
 fromASTExprId :: Indices -> AST.Expr -> State IRGenCtx TExpr
-fromASTExprId is (AST.Id n) = let iexprs = map IndexExpr.makeIndex is
-                                  te     = TensorExpr.makeAccess n iexprs
-                              in return te
+fromASTExprId is (AST.InE (AST.Id n)) =
+  let iexprs = map IndexExpr.makeIndex is
+      te     = TensorExpr.makeAccess n iexprs
+  in return te
 
 fromASTExprPlus :: Indices -> AST.Expr -> State IRGenCtx TExpr
-fromASTExprPlus is (AST.Plus e0 e1) = do te0 <- fromASTExpr is e0
-                                         te1 <- fromASTExpr is e1
-                                         return $ te0 TensorExpr.+ te1
+fromASTExprPlus is (AST.InE (AST.Plus e0 e1)) =
+  do te0 <- fromASTExpr is e0
+     te1 <- fromASTExpr is e1
+     return $ te0 TensorExpr.+ te1
                                         
 fromASTExprMinus :: Indices -> AST.Expr -> State IRGenCtx TExpr
-fromASTExprMinus is (AST.Minus e0 e1) = do te0 <- fromASTExpr is e0
-                                           te1 <- fromASTExpr is e1
-                                           return $ te0 TensorExpr.- te1
+fromASTExprMinus is (AST.InE (AST.Minus e0 e1)) =
+  do te0 <- fromASTExpr is e0
+     te1 <- fromASTExpr is e1
+     return $ te0 TensorExpr.- te1
 
 fromASTExprStar :: Indices -> AST.Expr -> State IRGenCtx TExpr
-fromASTExprStar is (AST.Star e0 e1) = do irgc <- get
-                                         let is0 = if exprRank irgc e0 == 0
-                                                      then []
-                                                      else is
-                                         te0  <- fromASTExpr is0 e0
-                                         te1  <- fromASTExpr is e1
-                                         return $ te0 TensorExpr.* te1
+fromASTExprStar is (AST.InE (AST.Star e0 e1)) =
+  do irgc <- get
+     let is0 = if exprRank irgc e0 == 0 then [] else is
+     te0  <- fromASTExpr is0 e0
+     te1  <- fromASTExpr is e1
+     return $ te0 TensorExpr.* te1
 
 fromASTExprHash :: Indices -> AST.Expr -> State IRGenCtx TExpr
-fromASTExprHash is (AST.Hash e0 e1) = do irgc <- get
-                                         let (is0, is1) = splitIndexList irgc e0 e1 is
-                                         te0  <- fromASTExpr is0 e0
-                                         te1  <- fromASTExpr is1 e1
-                                         return $  te0 TensorExpr.* te1
+fromASTExprHash is (AST.InE (AST.Hash e0 e1)) =
+  do irgc <- get
+     let (is0, is1) = splitIndexList irgc e0 e1 is
+     te0  <- fromASTExpr is0 e0
+     te1  <- fromASTExpr is1 e1
+     return $  te0 TensorExpr.* te1
 
 fromASTExprPeriod :: Indices -> AST.Expr -> State IRGenCtx TExpr
-fromASTExprPeriod is (AST.Period e p@(p0, p1)) =
+fromASTExprPeriod is (AST.InE (AST.Period e p@(p0, p1))) =
   do irgc <- get
      let ub  = exprTypeAt irgc e p0
      i    <- IRGenContext.freshIndex
@@ -88,8 +91,9 @@ fromASTExprPeriod is (AST.Period e p@(p0, p1)) =
      return $ TensorExpr.makeContraction i 0 ub 1 te'
                                            
 fromASTExprCaret :: Indices -> AST.Expr -> State IRGenCtx TExpr
-fromASTExprCaret is (AST.Caret e p) = let is' = Utility.swapPair p is
-                                      in fromASTExpr is' e
+fromASTExprCaret is (AST.InE (AST.Caret e p)) =
+  let is' = Utility.swapPair p is
+  in fromASTExpr is' e
 
 fromASTStmt :: AST.Stmt -> State IRGenCtx IRStmt
 fromASTStmt stmt = let expr = AST.expr stmt

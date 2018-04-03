@@ -20,7 +20,8 @@ module AST ( Tuple
            , var
            , expr
            , makeStmt
-           , Expr (..)
+           , ExprF(..)
+           , Expr(InE), outE
            , makeId
            , makePlus
            , makeMinus
@@ -29,6 +30,7 @@ module AST ( Tuple
            , makeHash
            , makePeriod
            , makeCaret
+           , periodsInExpr
            , prettyPrintProgram
            , prettyPrintDecl
            , prettyPrintStmt
@@ -99,39 +101,62 @@ makeStmt :: String -> Expr -> Stmt
 makeStmt = S
 
 
-data Expr = Id String
-          | Plus   Expr Expr
-          | Minus  Expr Expr
-          | Star   Expr Expr
-          | Slash  Expr Expr
-          | Hash   Expr Expr
-          | Period Expr Pair
-          | Caret  Expr Pair
+data ExprF a  = Id String
+              | Plus   a a
+              | Minus  a a
+              | Star   a a
+              | Slash  a a
+              | Hash   a a
+              | Period a Pair
+              | Caret  a Pair
+          deriving (Eq, Show)
+
+instance Functor ExprF where
+  fmap f (Id x)        = Id x
+  fmap f (Plus e0 e1)  = Plus (f e0) (f e1)
+  fmap f (Minus e0 e1) = Minus (f e0) (f e1)
+  fmap f (Star e0 e1)  = Star (f e0) (f e1)
+  fmap f (Slash e0 e1) = Slash (f e0) (f e1)
+  fmap f (Hash e0 e1)  = Hash (f e0) (f e1)
+  fmap f (Period e p)  = Period (f e) p
+  fmap f (Caret e p)   = Caret (f e) p
+    
+data Expr = InE { outE :: ExprF Expr }
           deriving (Eq)
 
 makeId :: String -> Expr
-makeId = Id
+makeId = InE . Id
 
 makePlus :: Expr -> Expr -> Expr
-makePlus = Plus
+makePlus e0 e1 = InE $ Plus e0 e1
 
 makeMinus :: Expr -> Expr -> Expr
-makeMinus = Minus
+makeMinus e0 e1 = InE $ Minus e0 e1
 
 makeStar :: Expr -> Expr -> Expr
-makeStar = Star
+makeStar e0 e1 = InE $ Star e0 e1
 
 makeSlash :: Expr -> Expr -> Expr
-makeSlash = Slash
+makeSlash e0 e1 = InE $ Slash e0 e1
 
 makeHash :: Expr -> Expr -> Expr
-makeHash = Hash
+makeHash e0 e1 = InE $ Hash e0 e1
 
 makePeriod :: Expr -> Pair -> Expr
-makePeriod = Period
+makePeriod e p = InE $ Period e p
 
 makeCaret :: Expr -> Pair -> Expr
-makeCaret = Caret
+makeCaret e p = InE $ Caret e p
+
+
+periodsInExpr :: Expr -> Int
+periodsInExpr (InE (Plus e0 e1))  = periodsInExpr e0 + periodsInExpr e1
+periodsInExpr (InE (Minus e0 e1)) = periodsInExpr e0 + periodsInExpr e1
+periodsInExpr (InE (Star e0 e1))  = periodsInExpr e0 + periodsInExpr e1
+periodsInExpr (InE (Slash e0 e1)) = periodsInExpr e0 + periodsInExpr e1
+periodsInExpr (InE (Hash e0 e1))  = periodsInExpr e0 + periodsInExpr e1
+periodsInExpr (InE (Period e0 _)) = 1 + periodsInExpr e0
+periodsInExpr (InE (Caret e0 _))  = periodsInExpr e0
 
 
 prettyPrintPair :: Pair -> Doc
@@ -145,38 +170,38 @@ instance Show Expr where
   show = render . prettyPrintExprTopLevel
   
 prettyPrintExprTopLevel :: Expr -> Doc
-prettyPrintExprTopLevel (Id string)   = text string
-prettyPrintExprTopLevel (Plus e0 e1)  =
+prettyPrintExprTopLevel (InE (Id string))   = text string
+prettyPrintExprTopLevel (InE (Plus e0 e1))  =
   let op = (text "+")
   in (prettyPrintExpr e0) <> op <> (prettyPrintExpr e1)
-prettyPrintExprTopLevel (Minus e0 e1) =
+prettyPrintExprTopLevel (InE (Minus e0 e1)) =
   let op = (text "-")
   in (prettyPrintExpr e0) <> op <> (prettyPrintExpr e1)
-prettyPrintExprTopLevel (Star e0 e1)  =
+prettyPrintExprTopLevel (InE (Star e0 e1))  =
   let op = (text "*")
   in (prettyPrintExpr e0) <> op <> (prettyPrintExpr e1)
-prettyPrintExprTopLevel (Slash e0 e1) =
+prettyPrintExprTopLevel (InE (Slash e0 e1)) =
   let op = (text "/")
   in (prettyPrintExpr e0) <> op <> (prettyPrintExpr e1)
-prettyPrintExprTopLevel (Hash e0 e1)  =
+prettyPrintExprTopLevel (InE (Hash e0 e1))  =
   let op = (text "#")
   in (prettyPrintExpr e0) <> op <> (prettyPrintExpr e1)
-prettyPrintExprTopLevel (Period e p)  =
+prettyPrintExprTopLevel (InE (Period e p))  =
   let op = (text ".")
   in (prettyPrintExpr e) <> op <> (prettyPrintPair p)
-prettyPrintExprTopLevel (Caret e p)   =
+prettyPrintExprTopLevel (InE (Caret e p))   =
   let op = (text "^")
   in (prettyPrintExpr e) <> op <> (prettyPrintPair p)
 
 prettyPrintExpr :: Expr -> Doc
-prettyPrintExpr e@(Id _)       = prettyPrintExprTopLevel e
-prettyPrintExpr e@(Plus _ _)   = parens $ prettyPrintExprTopLevel e
-prettyPrintExpr e@(Minus _ _)  = parens $ prettyPrintExprTopLevel e
-prettyPrintExpr e@(Star _ _)   = prettyPrintExprTopLevel e
-prettyPrintExpr e@(Slash _ _)  = prettyPrintExprTopLevel e
-prettyPrintExpr e@(Hash _ _)   = parens $ prettyPrintExprTopLevel e
-prettyPrintExpr e@(Period _ _) = parens $ prettyPrintExprTopLevel e
-prettyPrintExpr e@(Caret _ _)  = parens $ prettyPrintExprTopLevel e
+prettyPrintExpr e@(InE (Id _))       = prettyPrintExprTopLevel e
+prettyPrintExpr e@(InE (Plus _ _))   = parens $ prettyPrintExprTopLevel e
+prettyPrintExpr e@(InE (Minus _ _))  = parens $ prettyPrintExprTopLevel e
+prettyPrintExpr e@(InE (Star _ _))   = prettyPrintExprTopLevel e
+prettyPrintExpr e@(InE (Slash _ _))  = prettyPrintExprTopLevel e
+prettyPrintExpr e@(InE (Hash _ _))   = parens $ prettyPrintExprTopLevel e
+prettyPrintExpr e@(InE (Period _ _)) = parens $ prettyPrintExprTopLevel e
+prettyPrintExpr e@(InE (Caret _ _))  = parens $ prettyPrintExprTopLevel e
 
 
 instance Show Stmt where
