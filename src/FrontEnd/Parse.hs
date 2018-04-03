@@ -47,14 +47,25 @@ pairParser = do
   return $ AST.makePair i0 i1
 
 
-declParser' :: String -> Parsec.Parsec String () AST.DeclRecord
-declParser' keyword = do
-  stringParser keyword
+declTupleParser :: Parsec.Parsec String () AST.DeclRecord
+declTupleParser = do
   id <- idParser
   charParser ':'
   dims <- tupleParser
-  return $ AST.makeDeclRecord id dims
+  return $ AST.makeDeclRecordFromTuple id dims
 
+declStringParser :: Parsec.Parsec String () AST.DeclRecord
+declStringParser = do
+  id <- idParser
+  charParser ':'
+  string <- idParser
+  return $ AST.makeDeclRecordFromString id string
+
+declParser' :: String -> Parsec.Parsec String () AST.DeclRecord
+declParser' keyword = do
+  stringParser keyword
+  (Parsec.try declTupleParser) Parsec.<|> declStringParser
+  
 varDeclParser :: Parsec.Parsec String () AST.Decl
 varDeclParser = do
   d <- declParser' "var"

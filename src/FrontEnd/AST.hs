@@ -8,14 +8,13 @@ module AST ( Tuple
            , stmts
            , makeProgram
            , DeclRecord
-           , makeDeclRecord
+           , makeDeclRecordFromTuple, makeDeclRecordFromString
+           , isTupleDeclRecord, isStringDeclRecord
            , Decl
-           , makeVarDecl
-           , makeTypDecl
-           , isVarDecl
-           , isTypDecl
-           , declName
-           , declTuple
+           , makeVarDecl, makeTypDecl
+           , isVarDecl, isTypDecl
+           , declName, declTuple, declString
+           , isDeclWithTuple, isDeclWithString
            , Stmt
            , var
            , expr
@@ -61,13 +60,39 @@ makeProgram :: [Decl] -> [Stmt] -> Program
 makeProgram = P
 
 
-type DeclRecord = (String, Tuple)
+data DeclRecord = DRtuple String Tuple
+                | DRstring String String
+                deriving (Eq)
 
-makeDeclRecord :: String -> Tuple -> DeclRecord
-makeDeclRecord s t = (s, t)
+makeDeclRecordFromTuple :: String -> Tuple -> DeclRecord
+makeDeclRecordFromTuple s t = DRtuple s t
 
-data Decl = Dvar DeclRecord
-          | Dtyp DeclRecord
+makeDeclRecordFromString :: String -> String -> DeclRecord
+makeDeclRecordFromString s t = DRstring s t
+
+isTupleDeclRecord :: DeclRecord -> Bool
+isTupleDeclRecord (DRtuple _ _) = True
+isTupleDeclRecord _             = False
+
+isStringDeclRecord :: DeclRecord -> Bool
+isStringDeclRecord (DRstring _ _) = True
+isStringDeclRecord _              = False
+
+declRecordName :: DeclRecord -> String
+declRecordName (DRtuple name _)  = name
+declRecordName (DRstring name _) = name
+
+declRecordTuple :: DeclRecord -> Tuple
+declRecordTuple (DRtuple _ tuple) = tuple
+declrecordTuple _                 = undefined
+
+declRecordString :: DeclRecord -> String
+declRecordString (DRstring _ string) = string
+declRecordString _                   = undefined
+
+
+data Decl = Dvar { record :: DeclRecord }
+          | Dtyp { record :: DeclRecord }
           deriving (Eq)
 
 makeVarDecl :: DeclRecord -> Decl
@@ -85,12 +110,19 @@ isTypDecl (Dtyp _) = True
 isTypDecl _        = False
 
 declName :: Decl -> String
-declName (Dvar (name, _)) = name
-declName (Dtyp (name, _)) = name
+declName = declRecordName . record 
 
 declTuple :: Decl -> Tuple
-declTuple (Dvar (_, tuple)) = tuple
-declTuple (Dtyp (_, tuple)) = tuple
+declTuple = declRecordTuple .record
+
+declString :: Decl -> String
+declString = declRecordString . record
+
+isDeclWithTuple :: Decl -> Bool
+isDeclWithTuple = isTupleDeclRecord . record
+
+isDeclWithString :: Decl -> Bool
+isDeclWithString = isStringDeclRecord . record
 
 
 data Stmt = S { var  :: String
@@ -217,10 +249,8 @@ instance Show Decl where
   show = render . prettyPrintDecl
   
 prettyPrintDecl :: Decl -> Doc
-prettyPrintDecl (Dvar (id, dims)) = (text "var") <+> (text id) <+>
-                                    (text ":") <+> prettyPrintTuple dims
-prettyPrintDecl (Dtyp (id, dims)) = (text "type") <+> (text id) <+>
-                                    (text ":") <+> prettyPrintTuple dims
+prettyPrintDecl (Dvar dr) = (text "var") <+> prettyPrintDeclRecord dr
+prettyPrintDecl (Dtyp dr) = (text "type") <+> prettyPrintDeclRecord dr
 
 
 instance Show Program where
@@ -230,3 +260,14 @@ prettyPrintProgram :: Program -> Doc
 prettyPrintProgram (P decls stmts) = (vcat $ map prettyPrintDecl decls) $$
                                      space $$
                                      (vcat $ map prettyPrintStmt stmts)
+
+
+instance Show DeclRecord where
+  show = render . prettyPrintDeclRecord
+
+prettyPrintDeclRecord :: DeclRecord -> Doc
+prettyPrintDeclRecord (DRtuple  name dims)   = (text name) <+> (text ":") <+>
+                                               prettyPrintTuple dims
+prettyPrintDeclRecord (DRstring name string) = (text name) <+> (text ":") <+>
+                                               (text string)
+

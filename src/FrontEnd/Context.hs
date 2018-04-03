@@ -13,8 +13,9 @@ module Context ( Context
 import Control.Monad.State
 import qualified Data.Map as Map
 
-import qualified Symbol
 import qualified AST
+import qualified Symbol
+import qualified TType
 
 
 data Context = Ctx { table :: Map.Map String Symbol.Symbol
@@ -42,9 +43,22 @@ getSymbol name ctx = case Context.lookup name ctx of
   Nothing  -> error "name not bound in context"
   Just sym -> sym
 
+getType :: String -> Context -> TType.TType
+getType name ctx = Symbol.symbolType $ getSymbol name ctx
+
+makeSymbol :: AST.Decl -> String -> TType.TType -> Symbol.Symbol
+makeSymbol decl name tuple | AST.isVarDecl decl =
+                               Symbol.makeVarSymbol name tuple
+                           | AST.isTypDecl decl =
+                               Symbol.makeTypSymbol name tuple
+                           | otherwise = undefined
+                             
 insertDecl :: Context -> AST.Decl -> Context
-insertDecl ctx decl = let name = AST.declName decl
-                          sym  = Symbol.declSymbol decl
+insertDecl ctx decl = let name  = AST.declName decl
+                          tuple = if AST.isDeclWithString decl
+                                     then getType (AST.declString decl) ctx
+                                     else AST.declTuple decl
+                          sym   = makeSymbol decl name tuple
                       in if inScope name ctx
                             then error "re-declaration"
                             else insert name sym ctx
