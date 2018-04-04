@@ -10,10 +10,12 @@ module AST ( Tuple
            , DeclRecord
            , makeDeclRecordFromTuple, makeDeclRecordFromString
            , isTupleDeclRecord, isStringDeclRecord
+           , IOQualifier
+           , ioQualifier
            , Decl
            , makeVarDecl, makeTypDecl
            , isVarDecl, isTypDecl
-           , declName, declTuple, declString
+           , declName, declTuple, declString, declIOQualifier
            , isDeclWithTuple, isDeclWithString
            , Stmt
            , var
@@ -91,23 +93,35 @@ declRecordString (DRstring _ string) = string
 declRecordString _                   = undefined
 
 
-data Decl = Dvar { record :: DeclRecord }
-          | Dtyp { record :: DeclRecord }
+data IOQualifier = None | In | Out | InOut
+                 deriving (Eq)
+
+ioQualifier :: String -> IOQualifier
+ioQualifier "none"  = None
+ioQualifier "in"    = In
+ioQualifier "out"   = Out
+ioQualifier "inout" = InOut
+
+
+data Decl = Dvar { record :: DeclRecord
+                 , qual   :: IOQualifier }
+          | Dtyp { record :: DeclRecord
+                 , qual   :: IOQualifier }
           deriving (Eq)
 
-makeVarDecl :: DeclRecord -> Decl
+makeVarDecl :: DeclRecord -> IOQualifier -> Decl
 makeVarDecl = Dvar
 
-makeTypDecl :: DeclRecord -> Decl
+makeTypDecl :: DeclRecord -> IOQualifier -> Decl
 makeTypDecl = Dtyp
 
 isVarDecl :: Decl -> Bool
-isVarDecl (Dvar _) = True
-isVarDecl _        = False
+isVarDecl (Dvar _ _) = True
+isVarDecl _          = False
 
 isTypDecl :: Decl -> Bool
-isTypDecl (Dtyp _) = True
-isTypDecl _        = False
+isTypDecl (Dtyp _ _) = True
+isTypDecl _          = False
 
 declName :: Decl -> String
 declName = declRecordName . record 
@@ -123,6 +137,9 @@ isDeclWithTuple = isTupleDeclRecord . record
 
 isDeclWithString :: Decl -> Bool
 isDeclWithString = isStringDeclRecord . record
+
+declIOQualifier :: Decl -> IOQualifier
+declIOQualifier = qual
 
 
 data Stmt = S { var  :: String
@@ -249,8 +266,10 @@ instance Show Decl where
   show = render . prettyPrintDecl
   
 prettyPrintDecl :: Decl -> Doc
-prettyPrintDecl (Dvar dr) = (text "var") <+> prettyPrintDeclRecord dr
-prettyPrintDecl (Dtyp dr) = (text "type") <+> prettyPrintDeclRecord dr
+prettyPrintDecl (Dvar dr q) = (text "var") <+> (text $ show q) <+>
+                              prettyPrintDeclRecord dr
+prettyPrintDecl (Dtyp dr q) = (text "type") <+> (text $ show q) <+>
+                              prettyPrintDeclRecord dr
 
 
 instance Show Program where
@@ -270,4 +289,12 @@ prettyPrintDeclRecord (DRtuple  name dims)   = (text name) <+> (text ":") <+>
                                                prettyPrintTuple dims
 prettyPrintDeclRecord (DRstring name string) = (text name) <+> (text ":") <+>
                                                (text string)
+
+
+instance Show IOQualifier where
+  show None  = "none"
+  show In    = "in"
+  show Out   = "out"
+  show InOut = "inout"
+
 

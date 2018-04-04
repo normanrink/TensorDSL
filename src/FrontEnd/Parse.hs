@@ -47,34 +47,48 @@ pairParser = do
   return $ AST.makePair i0 i1
 
 
-declTupleParser :: Parsec.Parsec String () AST.DeclRecord
-declTupleParser = do
+ioQualParserNone :: Parsec.Parsec String () String
+ioQualParserNone = return $ "none"
+
+ioQualParser :: Parsec.Parsec String () AST.IOQualifier
+ioQualParser = do
+  qs <- (Parsec.try $ stringParser "none") Parsec.<|>
+        (Parsec.try $ stringParser "in") Parsec.<|>
+        (Parsec.try $ stringParser "out") Parsec.<|>
+        (Parsec.try $ stringParser "inout") Parsec.<|>
+        ioQualParserNone
+  return $ AST.ioQualifier qs
+  
+declTupleParser :: AST.IOQualifier -> Parsec.Parsec String () AST.DeclRecord
+declTupleParser q = do
   id <- idParser
   charParser ':'
   dims <- tupleParser
   return $ AST.makeDeclRecordFromTuple id dims
 
-declStringParser :: Parsec.Parsec String () AST.DeclRecord
-declStringParser = do
+declStringParser :: AST.IOQualifier -> Parsec.Parsec String () AST.DeclRecord
+declStringParser q = do
   id <- idParser
   charParser ':'
   string <- idParser
   return $ AST.makeDeclRecordFromString id string
 
-declParser' :: String -> Parsec.Parsec String () AST.DeclRecord
+declParser' :: String -> Parsec.Parsec String () (AST.DeclRecord, AST.IOQualifier)
 declParser' keyword = do
   stringParser keyword
-  (Parsec.try declTupleParser) Parsec.<|> declStringParser
+  q  <- ioQualParser
+  dr <- (Parsec.try $ declTupleParser q) Parsec.<|> declStringParser q
+  return (dr, q)
   
 varDeclParser :: Parsec.Parsec String () AST.Decl
 varDeclParser = do
-  d <- declParser' "var"
-  return $ AST.makeVarDecl d
+  (dr, q) <- declParser' "var"
+  return $ AST.makeVarDecl dr q
 
 typDeclParser :: Parsec.Parsec String () AST.Decl
 typDeclParser = do
-  d <- declParser' "type"
-  return $ AST.makeTypDecl d
+  (dr, q) <- declParser' "type"
+  return $ AST.makeTypDecl dr q
 
 declParser :: Parsec.Parsec String () AST.Decl
 declParser = varDeclParser Parsec.<|> typDeclParser
