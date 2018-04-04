@@ -2,12 +2,14 @@
 import Control.Exception
 import System.Environment
 import System.IO
+import Text.PrettyPrint
 
 import qualified Check
 import qualified IRGen
 import qualified LiftPeriods
 import qualified LoopIR
 import qualified Parse
+import qualified SignatureGen
 
 
 readFromStdin :: IO String
@@ -32,5 +34,11 @@ main = do
              let ir   = IRGen.fromASTProgram ast' ctx'
              let et   = LoopIR.makeElementCType "double" "0.0"
              putStrLn "IR:"
-             putStrLn $ LoopIR.printCStmt et ir
+             let header = SignatureGen.prettyCHeader' "void"
+                                                      "kernel"
+                                                      "double"
+                                                      ctx'
+             let body   = LoopIR.printCStmt' et ir
+             let kernel = header <> space <> lbrace $$ (nest 2 body) $$ rbrace
+             putStrLn $ render kernel
                           

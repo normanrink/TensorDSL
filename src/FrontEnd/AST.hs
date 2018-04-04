@@ -11,7 +11,8 @@ module AST ( Tuple
            , makeDeclRecordFromTuple, makeDeclRecordFromString
            , isTupleDeclRecord, isStringDeclRecord
            , IOQualifier
-           , ioQualifier
+           , ioQualifier, ioNone
+           , isIOIn, isIOOut
            , Decl
            , makeVarDecl, makeTypDecl
            , isVarDecl, isTypDecl
@@ -101,6 +102,15 @@ ioQualifier "none"  = None
 ioQualifier "in"    = In
 ioQualifier "out"   = Out
 ioQualifier "inout" = InOut
+
+ioNone :: IOQualifier
+ioNone = None
+
+isIOIn :: IOQualifier -> Bool
+isIOIn d = d == In || d == InOut
+
+isIOOut :: IOQualifier -> Bool
+isIOOut d = d == Out || d == InOut
 
 
 data Decl = Dvar { record :: DeclRecord

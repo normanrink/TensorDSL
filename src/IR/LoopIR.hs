@@ -7,7 +7,7 @@ module LoopIR ( AssignOp, assignEq, assignAdd
               , makeCompound, isCompound, getStmts 
               , makeLoop, isLoop, getBody, replaceBody
               , makeElementCType
-              , printCStmt ) where
+              , printCStmt', printCStmt ) where
 
 import Text.PrettyPrint
 
@@ -106,10 +106,10 @@ replaceBody _                       _     = undefined
 
 
 printCStmt :: (Show n, Show i, Show c) => ElementCType -> Stmt n i c -> String
-printCStmt eltty stmt = render $ prettyPrint eltty stmt
+printCStmt eltty stmt = render $ printCStmt' eltty stmt
 
-prettyPrint :: (Show n, Show i, Show c) => ElementCType -> Stmt n i c -> Doc
-prettyPrint = prettyPrint' 0
+printCStmt' :: (Show n, Show i, Show c) => ElementCType -> Stmt n i c -> Doc
+printCStmt' = prettyPrint' 0
 
 prettyPrint' :: (Show n, Show i, Show c) => Int -> ElementCType -> Stmt n i c -> Doc
 prettyPrint' indent _ (Assignment op lhs rhs) =
@@ -135,10 +135,10 @@ prettyPrint' indent eltty (Declaration name dims init) =
                   else empty
   in nest indent $ decl <+> init' <> semi
 prettyPrint' indent eltty (Compound stmts) =
-  let body    = vcat $ map (prettyPrint eltty) stmts
+  let body    = vcat $ map (printCStmt' eltty) stmts
   in nest indent $ body
 prettyPrint' indent eltty (Loop index lb ub inc body) =
-  let body'   = prettyPrint eltty body
+  let body'   = printCStmt' eltty body
       eqop    = (text "=")
       leqop   = (text "<")
       incop   = (text "+=")

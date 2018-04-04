@@ -7,10 +7,12 @@ module TType ( TType
              , isScalar
              , skipPair
              , swapPair
-             , zip ) where
+             , zip
+             , prettyTType ) where
 
 import Prelude hiding (concat, zip)
 import qualified Prelude (zip)
+import Text.PrettyPrint
 
 import qualified AST
 import qualified Utility
@@ -42,3 +44,6 @@ swapPair = Utility.swapPair
 
 zip :: TType -> [a] -> [(Int, a)]
 zip = Prelude.zip
+
+prettyTType :: TType -> Doc
+prettyTType t = hcat $ map (brackets . text . show) t 

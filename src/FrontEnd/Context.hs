@@ -1,5 +1,6 @@
 
 module Context ( Context
+               , inputs, outputs
                , emptyCtx
                , inScope
                , getSymbol
@@ -19,11 +20,19 @@ import qualified TType
 
 
 data Context = Ctx { table :: Map.Map String Symbol.Symbol
-                   , vars  :: Int }
+                   , vars  :: Int
+                   , ins   :: [Symbol.Symbol]
+                   , outs  :: [Symbol.Symbol] }
              deriving (Eq, Show)
 
 emptyCtx :: Context
-emptyCtx = Ctx Map.empty 0
+emptyCtx = Ctx Map.empty 0 [] []
+
+inputs :: Context -> [Symbol.Symbol]
+inputs = ins
+
+outputs :: Context -> [Symbol.Symbol]
+outputs = outs
 
 inScope :: String -> Context -> Bool
 inScope name ctx = Map.member name (table ctx)
@@ -31,11 +40,18 @@ inScope name ctx = Map.member name (table ctx)
 lookup :: String -> Context -> Maybe Symbol.Symbol
 lookup name ctx = Map.lookup name (table ctx)
 
-insert :: String -> Symbol.Symbol -> Context -> Context
-insert name sym (Ctx table vars) = Ctx (Map.insert name sym table) vars 
+insert :: String -> Symbol.Symbol -> AST.IOQualifier -> Context -> Context
+insert name sym io (Ctx table vars ins outs) =
+  let ins'  = if AST.isIOIn io
+                 then ins ++ [sym]
+                 else ins
+      outs' = if AST.isIOOut io
+                 then outs ++ [sym]
+                 else outs
+  in Ctx (Map.insert name sym table) vars ins' outs'
 
 incVars :: Context -> Context
-incVars (Ctx table vars) = Ctx table (vars+1)
+incVars (Ctx table vars ins outs) = Ctx table (vars+1) ins outs
 
 
 getSymbol :: String -> Context -> Symbol.Symbol
@@ -59,9 +75,10 @@ insertDecl ctx decl = let name  = AST.declName decl
                                      then getType (AST.declString decl) ctx
                                      else AST.declTuple decl
                           sym   = makeSymbol decl name tuple
+                          io    = AST.declIOQualifier decl
                       in if inScope name ctx
                             then error "re-declaration"
-                            else insert name sym ctx
+                            else insert name sym io ctx
 
 insertDecls :: Context -> [AST.Decl] -> Context
 insertDecls ctx decl = foldl insertDecl ctx decl
@@ -76,4 +93,5 @@ freshVariable = do ctx <- get
 
 insertSymbol :: String -> Symbol.Symbol -> State Context ()
 insertSymbol name sym = do ctx <- get
-                           put $ insert name sym ctx
+                           put $ insert name sym AST.ioNone ctx
+
