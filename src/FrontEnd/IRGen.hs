@@ -1,5 +1,5 @@
 
-module IRGen where
+module IRGen ( fromASTProgram ) where
 
 import Control.Monad.State
 

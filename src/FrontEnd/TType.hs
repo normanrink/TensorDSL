@@ -1,14 +1,12 @@
 
 module TType ( TType
-             , rank
-             , at
+             , rank, at
              , concat
              , scalar
              , isScalar
-             , skipPair
-             , swapPair
+             , skipPair, swapPair
              , zip
-             , prettyTType ) where
+             , prettyTType, prettyCTType ) where
 
 import Prelude hiding (concat, zip)
 import qualified Prelude (zip)
@@ -46,4 +44,11 @@ zip :: TType -> [a] -> [(Int, a)]
 zip = Prelude.zip
 
 prettyTType :: TType -> Doc
-prettyTType t = hcat $ map (brackets . text . show) t 
+prettyTType t = hcat $ map (brackets . text . show) t
+
+prettyCTType :: TType -> Doc
+prettyCTType t | isScalar t = (brackets . text) "restrict 1"
+               | otherwise  =
+                   let first = (text . show . head) t
+                       rest  = hcat $ map (brackets . text . show) (tail t)
+                   in (brackets $ (text "restrict") <+> first) <> rest

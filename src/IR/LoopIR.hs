@@ -6,6 +6,8 @@ module LoopIR ( AssignOp, assignEq, assignAdd
               , makeDeclaration, isDeclaration
               , makeCompound, isCompound, getStmts 
               , makeLoop, isLoop, getBody, replaceBody
+              , ElementCType
+              , typeString, initVal
               , makeElementCType
               , printCStmt', printCStmt ) where
 
