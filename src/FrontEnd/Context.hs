@@ -1,6 +1,6 @@
 
 module Context ( Context
-               , inputs, outputs
+               , inputs, outputs, locals
                , emptyCtx
                , inScope
                , getSymbol
@@ -33,6 +33,11 @@ inputs = ins
 
 outputs :: Context -> [Symbol.Symbol]
 outputs = outs
+
+locals :: Context -> [Symbol.Symbol]
+locals ctx = [ s | s <- Map.elems (table ctx),
+                   not (s `elem` (inputs ctx ++ outputs ctx)) ]
+
 
 inScope :: String -> Context -> Bool
 inScope name ctx = Map.member name (table ctx)

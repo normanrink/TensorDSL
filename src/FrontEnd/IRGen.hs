@@ -9,6 +9,7 @@ import qualified Context
 import qualified IndexExpr
 import qualified IRGenContext
 import qualified LoopIR
+import qualified Symbol
 import qualified TensorExpr
 import qualified TType
 import qualified Utility
@@ -121,13 +122,24 @@ fromASTProgram' p ctx = let decls = AST.decls p
 
 fromASTProgram :: AST.Program -> Context.Context -> IRStmt
 fromASTProgram p ctx = let (ir, irgc) = fromASTProgram' p ctx
-                       in evalState (explicitContractions True ir) irgc
+                           locals     = Context.locals ctx
+                           irdecls    = irDeclarations locals
+                           irstmt     = evalState (explicitContractions True ir) irgc
+                       in LoopIR.makeCompound (irdecls ++ [irstmt])
 
 irLoopNest :: TType.TType -> Indices -> IRStmt -> IRStmt
 irLoopNest t is irstmt = let pairs  = TType.zip t is
                              folder = \(bound, index) ->
                                       \ir -> LoopIR.makeLoop index 0 bound 1 ir
                          in foldr folder irstmt pairs 
+
+irDeclaration :: Symbol.Symbol -> IRStmt
+irDeclaration sym = let name  = Symbol.symbolName sym
+                        ttype = Symbol.symbolType sym
+                    in LoopIR.makeDeclaration name ttype False
+
+irDeclarations :: [Symbol.Symbol] -> [IRStmt]
+irDeclarations syms = map irDeclaration syms
 
 explicitContractionTopLevel :: IRStmt -> IRStmt
 explicitContractionTopLevel ir =
