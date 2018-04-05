@@ -46,9 +46,14 @@ zip = Prelude.zip
 prettyTType :: TType -> Doc
 prettyTType t = hcat $ map (brackets . text . show) t
 
-prettyCTType :: TType -> Doc
-prettyCTType t | isScalar t = (brackets . text) "restrict 1"
-               | otherwise  =
-                   let first = (text . show . head) t
-                       rest  = hcat $ map (brackets . text . show) (tail t)
-                   in (brackets $ (text "restrict") <+> first) <> rest
+prettyCTType :: TType -> Bool -> Doc
+-- TODO: The 'empty' type for scalars is not ideal for
+-- formal function arguments in C (since this way scalar
+-- results can not be passed out of the kernel).
+prettyCTType t isConst | isScalar t = empty
+                       | otherwise =
+                           let restrict = text "restrict"
+                               const    = text (if isConst then "const" else "")
+                               first = (text . show . head) t
+                               rest  = hcat $ map (brackets . text . show) (tail t)
+                           in (brackets $ restrict <+> const <+> first) <> rest

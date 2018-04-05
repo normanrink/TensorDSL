@@ -35,22 +35,22 @@ makeKernel :: LoopIR.Stmt n i c -> [Symbol.Symbol] -> [Symbol.Symbol] -> Kernel 
 makeKernel = K
 
 
-prettyCSymbol :: Symbol.Symbol -> Doc
-prettyCSymbol sym = let name  = Symbol.symbolName sym
-                        ttype = Symbol.symbolType sym
-                    in (text name) <> TType.prettyCTType ttype
+prettyCSymbol :: Bool -> Symbol.Symbol -> Doc
+prettyCSymbol isConst sym = let name  = Symbol.symbolName sym
+                                ttype = Symbol.symbolType sym
+                            in (text name) <> TType.prettyCTType ttype isConst
 
 
-prettyCSignature1 :: String -> [Symbol.Symbol] -> Doc
-prettyCSignature1 typeString syms =
+prettyCSignature1 :: Bool -> String -> [Symbol.Symbol] -> Doc
+prettyCSignature1 isConst typeString syms =
   (foldl (\docs -> \d -> docs $$ (text typeString) <+> d)
          empty
-         (punctuate comma (map prettyCSymbol syms)))
+         (punctuate comma (map (prettyCSymbol isConst) syms)))
 
 prettyCSignature' :: String -> [Symbol.Symbol] -> [Symbol.Symbol] -> Doc
 prettyCSignature' typeString inputs outputs =
-  let insDoc     = prettyCSignature1 ("const " ++ typeString) inputs
-      outsDoc    = prettyCSignature1 typeString outputs
+  let insDoc     = prettyCSignature1 True typeString inputs
+      outsDoc    = prettyCSignature1 False typeString outputs
   in if length inputs == 0
         then outsDoc
         else if length outputs == 0
