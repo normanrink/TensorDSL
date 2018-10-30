@@ -8,7 +8,7 @@ module TType ( TType
              , zip
              , prettyTType, prettyCTType ) where
 
-import Prelude hiding (concat, zip)
+import Prelude hiding (concat, zip, (<>))
 import qualified Prelude (zip)
 import Text.PrettyPrint
 

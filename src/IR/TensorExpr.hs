@@ -11,7 +11,7 @@ module TensorExpr ( TExpr(..)
                   , prettyPrint
                   , freeIndicesInExpr ) where
 
-import Prelude hiding ((+), (-), (*))
+import Prelude hiding ((+), (-), (*), (<>))
 import qualified Prelude ((+), (-), (*))
 import Text.PrettyPrint
 

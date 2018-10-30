@@ -40,6 +40,7 @@ module AST ( Tuple
            , prettyPrintExprTopLevel
            , show ) where
 
+import Prelude hiding ((<>))
 import Text.PrettyPrint
 
 

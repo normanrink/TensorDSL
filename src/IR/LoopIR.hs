@@ -11,6 +11,7 @@ module LoopIR ( AssignOp, assignEq, assignAdd
               , makeElementCType
               , printCStmt', printCStmt ) where
 
+import Prelude hiding ((<>))
 import Text.PrettyPrint
 
 import qualified TensorExpr

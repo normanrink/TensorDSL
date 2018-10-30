@@ -13,7 +13,7 @@ module IndexExpr ( IExpr
                  , formatAsTree
                  , indicesInExpr ) where
 
-import Prelude hiding ((+), (-), (*))
+import Prelude hiding ((+), (-), (*), (<>))
 import qualified Prelude ((+), (-), (*))
 import Text.PrettyPrint
 

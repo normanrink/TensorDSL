@@ -63,14 +63,15 @@ library
                   TensorExpr
         
   -- Modules included in this executable, other than Main.
-  -- other-modules:       
+  other-modules:
+                Utility
   
   -- LANGUAGE extensions used by modules in this package.
   -- other-extensions:    
   
   -- Other library packages from which modules are imported.
   build-depends:
-                base >=4.9 && <4.10,
+                base >=4.9,
                 pretty >=1.1 && <1.2,
                 containers >=0.5 && <0.6,
                 parsec >=3.1 && <3.2,
@@ -92,7 +93,7 @@ executable FrontEnd
 
   -- Other library packages from which modules are imported.
   build-depends:
-                base >=4.9 && <4.10,
+                base >=4.9,
                 pretty >=1.1 && <1.2,
                 containers >=0.5 && <0.6,
                 parsec >=3.1 && <3.2,
@@ -104,7 +105,25 @@ executable FrontEnd
                  src/IR,
                  src/tools,
                  src/utils
-  
+
+  other-modules:
+                AST,
+                Check,
+                Context,
+                ExprZipper,
+                IRGen,
+                IRGenContext,
+                Kernel,
+                KernelGen,
+                LiftPeriods,
+                Parse,
+                Symbol,
+                TType,
+                IndexExpr,
+                LoopIR,
+                TensorExpr,
+                Utility
+    
   -- Base language which the package is written in.
   default-language:    Haskell2010
 
@@ -115,7 +134,7 @@ executable CKernelGen
 
   -- Other library packages from which modules are imported.
   build-depends:
-                base >=4.9 && <4.10,
+                base >=4.9,
                 pretty >=1.1 && <1.2,
                 containers >=0.5 && <0.6,
                 parsec >=3.1 && <3.2,
@@ -127,6 +146,24 @@ executable CKernelGen
                  src/IR,
                  src/tools,
                  src/utils
+
+  other-modules:
+                AST,
+                Check,
+                Context,
+                ExprZipper,
+                IRGen,
+                IRGenContext,
+                Kernel,
+                KernelGen,
+                LiftPeriods,
+                Parse,
+                Symbol,
+                TType,
+                IndexExpr,
+                LoopIR,
+                TensorExpr,
+                Utility
   
   -- Base language which the package is written in.
   default-language:    Haskell2010

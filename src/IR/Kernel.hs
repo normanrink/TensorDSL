@@ -4,6 +4,7 @@ module Kernel ( Kernel
               , makeKernel
               , printCKernel', printCKernel ) where
 
+import Prelude hiding ((<>))
 import Text.PrettyPrint
 
 import qualified LoopIR
