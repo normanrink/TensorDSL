@@ -28,7 +28,7 @@ private/*
 *.hi
 *.o
 
-dist/*
+dist*/
 
 *.dyn_hi
 *.dyn_o
