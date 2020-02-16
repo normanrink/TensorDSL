@@ -1,0 +1,9 @@
+var in a : [2 3]
+var in b : [2 3]
+var in c : [2 3]
+var in u : [3 3 3]
+var out w : [2 2 2]
+
+
+w = (a # b # c # u) . [1 6] . [2 5] . [3 4]
+
